@@ -66,23 +66,40 @@ app.post("/shortUrls", async(req,res)=>{
 })
 
 
-app.get("/:customUrl",async (req,res)=>{
- const shortId = req.params.customUrl;
-  const entry = await shortUrl.findOneAndUpdate(
-    {
-      shortId: shortId,
-    },
-    {
-      $push: {
-        visitHistory: {
-          timestamp: Date.now(),
-        },
-      },
+app.get("/:customUrl", async (req, res) => {
+    const shortId = req.params.customUrl;
+  
+    try {
+      const entry = await shortUrl.findOneAndUpdate(
+        { shortId: shortId },
+        {
+          $push: {
+            visitHistory: {
+              timestamp: Date.now(),
+            },
+          },
+        }
+      );
+  
+      if (!entry) {
+        // If no entry is found, handle it appropriately (e.g., send a 404 response).
+        res.status(404).send("URL not found");
+        return;
+      }
+  
+      // Ensure entry has the redirectURL property before trying to access it
+      if (entry.redirectURL) {
+        res.redirect(entry.redirectURL);
+      } else {
+        // Handle the case where redirectURL is not available
+        res.status(500).send("Internal Server Error");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).send("Internal Server Error");
     }
-  );
-  res.redirect(entry.redirectURL);
-})
-
+  });
+  
 app.listen(process.env.PORT || 3000,(req,res)=>{
     console.log("Server running at port 3000");
 });
